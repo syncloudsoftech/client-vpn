@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Client VPN endpoint deployment stack.
+
+Parameters:
+  ClientCidrBlock:
+    Type: String
+    Description: CIDR range for the clients connecting to the VPN.
+    Default: 172.16.0.0/22
+  LogsRetention:
+    Type: Number
+    Description: No. of days to retain logs in Cloudwatch.
+    Default: 30
+  SamlProviderArn:
+    Type: String
+    Description: ARN of SAML identity provider as added in IAM.
+  ServerCertificateArn:
+    Type: String
+    Description: ARN of the server certificate stored in ACM.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Select at subnet in the specified VPC.
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Select a VPC that allows instances to access the internet.
+
+Resources:
+  LogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/vpn/${AWS::StackName}"
+      RetentionInDays: !Ref LogsRetention
+
+  VpnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-vpn-sg"
+      GroupDescription: Security group for the VPN endpoint.
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VpcId
+
+  VpnEndpoint:
+    Type: AWS::EC2::ClientVpnEndpoint
+    Properties:
+      AuthenticationOptions:
+        - Type: federated-authentication
+          FederatedAuthentication:
+            SAMLProviderArn: !Ref SamlProviderArn
+            SelfServiceSAMLProviderArn: !Ref SamlProviderArn
+      ClientCidrBlock: !Ref ClientCidrBlock
+      ConnectionLogOptions:
+        Enabled: true
+        CloudwatchLogGroup: !Ref LogsGroup
+      Description: Client VPN endpoint
+      SecurityGroupIds:
+        - !GetAtt VpnSecurityGroup.GroupId
+      ServerCertificateArn: !Ref ServerCertificateArn
+      SplitTunnel: true
+      VpcId: !Ref VpcId
+      TransportProtocol: udp
+
+  VpnEndpointAssociation:
+    Type: AWS::EC2::ClientVpnTargetNetworkAssociation
+    Properties:
+      ClientVpnEndpointId: !Ref VpnEndpoint
+      SubnetId: !Ref SubnetId
+
+  VpnAuthorizationRule:
+    Type: AWS::EC2::ClientVpnAuthorizationRule
+    Properties:
+      AuthorizeAllGroups: true
+      ClientVpnEndpointId: !Ref VpnEndpoint
+      TargetNetworkCidr: 0.0.0.0/0
+
+Outputs:
+  VpnEndpointId:
+    Description: Client VPN endpoint's ID.
+    Value: !Ref VpnEndpoint
+    Export:
+      Name: !Join [ "-", [ !Ref AWS::StackName, VpnEndpointId ] ]
+
+  VpnSecurityGroupId:
+    Description: Security group ID associated with Client VPN endpoint.
+    Value: !GetAtt VpnSecurityGroup.GroupId
+    Export:
+      Name: !Join [ "-", [ !Ref AWS::StackName, VpnSecurityGroupId ] ]
