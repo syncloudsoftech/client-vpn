@@ -6,26 +6,30 @@
 
 Make sure to have [AWS CLI](https://aws.amazon.com/cli/) installed and configure on your workstation.
 
+### Server cetificate
+
 Firstly, you need a self-signed certificate for encrypted tunnels.
 Use below commands to generate a key-pair and import it into [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/):
 
 ```shell
 # download easy-rsa
-git clone https://github.com/OpenVPN/easy-rsa.git ~/easyrsa
-cd ~/easyrsa/easyrsa3
+$ git clone https://github.com/OpenVPN/easy-rsa.git ~/easyrsa
+$ cd ~/easyrsa/easyrsa3
 
 # generate server certificates
-./easyrsa build-ca nopass
-./easyrsa build-server-full server nopass
+$ ./easyrsa build-ca nopass
+$ ./easyrsa build-server-full server nopass
 
 # import the certificate
-aws acm import-certificate \
+$ aws acm import-certificate \
   --certificate file://pki/issued/server.crt \
   --private-key file://private/server.key \
   --certificate-chain file://pki/ca.crt
 ```
 
 Take note of the ARN for the imported certificate.
+
+### SAML authentication
 
 1. Now go to [Identity Center](https://aws.amazon.com/iam/identity-center/) in **AWS Console**.
 2. Create a new **Custom SAML 2.0 application**, name it e.g., `VPN`.
@@ -54,7 +58,7 @@ Take note of the ARN for the imported certificate.
 In project folder, run below commands to deploy the stack:
 
 ```shell
-aws cloudformation deploy \
+$ aws cloudformation deploy \
   --capabilities CAPABILITY_IAM \
   --stack-name client-vpn \
   --template-file template.yml \
@@ -69,13 +73,13 @@ Once created, our new [Client VPN](https://aws.amazon.com/vpn/) setup is ready f
 
 ```shell
 # get the client VPN endpoint ID
-aws cloudformation describe-stacks \
+$ aws cloudformation describe-stacks \
   --stack-name client-vpn \
   --query "Stacks[0].Outputs[?OutputKey=='VpnEndpointId'].OutputValue" \
   --output text
 
 # get the SSP URL
-aws ec2 describe-client-vpn-endpoints \
+$ aws ec2 describe-client-vpn-endpoints \
   --client-vpn-endpoint-ids ??? \ # replace this
   --query "ClientVpnEndpoints[0].SelfServicePortalUrl" \
   --output text
