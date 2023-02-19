@@ -1,6 +1,6 @@
 # client-vpn
 
-[CloudFormation](https://aws.amazon.com/cloudformation/) template for setting up a [Client VPN](https://aws.amazon.com/vpn/) endpoint for secure access to resources in a [VPC](https://aws.amazon.com/vpc/).
+[CloudFormation](https://aws.amazon.com/cloudformation/) template for setting up a [Client VPN](https://aws.amazon.com/vpn/) endpoint to securely access private resources in a [VPC](https://aws.amazon.com/vpc/).
 
 ## Prepare
 
